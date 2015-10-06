@@ -1,0 +1,355 @@
+<?xml version="1.0"?>
+<!-- ************** Error Manager Rev A01 **************** -->
+<!--
+
+When Platypus detects an error, it checks the error manager to see if that error should be handled by one of the error
+manager's 'rules'.  Each rule has:
+
+The sense codes that may trigger the rule.
+A list of commands that qualify if the rule should trigger.
+A count of how many times before the rule triggers.
+A list of actions to take once triggered.
+A per LBA of how many times this rule has matched
+
+
+Sense Codes:
+    The sense codes are comprised of the sense key, the additional sense code, and the additional sense code qualifier.
+    Each are handled separately and regex string matching is used to be able to match multiple codes.
+    There is a quick reference at: http://www.regular-expressions.info/
+
+    For example:
+
+    1. [0-9A-Fa-f]{2} can be broken into two parts. The [0-9A-Fa-f] says to match to any character in the 0-9 range or
+    the A-F range or the a-f range.  A '9' would match, a 'c' would match, but a 'g' would not, nor would a '-'.  This
+    will match to one character.  The {2} says to do this twice, so you could match to two characters.  So '[0-9A-Fa-f]{2}'
+    will match to any valid 'hex' representation.
+
+    2. 31|32|39|44 is an 'or' and any one will match. '44' will match, '45' won't match.
+
+    3. 1[78] will match '17' or '18' but will not match anything else.
+
+Commands:
+    Each rule has a list of commands that are supported by that rule.  If the command that caused the error is not in the
+    list, then that rule will not trigger.
+
+Count:
+    The number of times the rule is triggered before the action list is executed.
+
+lba_specific_count:
+    Tells whether the count above is on a per LBA basis or absolute.
+
+Action List:
+    This is a list of actions that Platypus will take when the rule has been triggered and the count has expired.
+    These actions will take place on only this slice of this drive!
+    Possible actions:
+        REPORT_ERROR,       // Note that this action must always be first in an action list
+        CONTINUE_TEST,
+        REASSIGN_LBA,
+        RESEND_COMMAND,
+        SET_FAULT_LED,
+        BYPASS_DRIVE        - send a command to the chassis to bypass the drive
+        TARGET_RESET        - send a reset to the target device
+        DUMP_COMMAND_LOG    - dumps the command log file
+        STOP_TEST           - stop testing this slice of this drive
+        DELAY_ONE_SECOND
+
+When an error occurs, the error manager will check the sense codes against each rule.  If the sense codes match,
+it then checks the command list to see if the command sent is in the list.  If the command is not in the list,
+it goes to the next rule.  If the command is present in the list, the count is incremented and checked against
+the limit.  If the limit has been exceeded, the error manager performs all the tasks in the action list.  Once
+a rule matches, it does not look for other rules that might match.
+
+-->
+<error_manager_root>
+  <error_manager>
+    <reassign_limit base="dec">16</reassign_limit>
+    <stop_actions> <!-- ordered list of action to take if the error handler decides to stop the test-->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">STOP_TEST</action>
+    </stop_actions>
+....<rule>
+........<description base="string">(64) 01/18 errors</description>
+........<sense_key_pattern base="string">01</sense_key_pattern>
+........<additional_sense_code_pattern base="string">18</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">28</cdb_opcode> <!-- read 10 -->
+............<cdb_opcode base="hex">88</cdb_opcode> <!-- read 16 -->
+............<cdb_opcode base="hex">2F</cdb_opcode> <!-- verify 10 -->
+............<cdb_opcode base="hex">8F</cdb_opcode> <!-- verify 16 -->
+............<cdb_opcode base="hex">2A</cdb_opcode> <!-- write 10 -->
+............<cdb_opcode base="hex">8A</cdb_opcode> <!-- write 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">64</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">One 01/5D</description>
+........<sense_key_pattern base="string">01</sense_key_pattern>
+........<additional_sense_code_pattern base="string">5D|5d</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">One 01/09</description>
+........<sense_key_pattern base="string">01</sense_key_pattern>
+........<additional_sense_code_pattern base="string">09</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">(2) 01/18 errors on the same LBA</description>
+........<sense_key_pattern base="string">01</sense_key_pattern>
+........<additional_sense_code_pattern base="string">18</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">28</cdb_opcode> <!-- read 10 -->
+............<cdb_opcode base="hex">88</cdb_opcode> <!-- read 16 -->
+............<cdb_opcode base="hex">2F</cdb_opcode> <!-- verify 10 -->
+............<cdb_opcode base="hex">8F</cdb_opcode> <!-- verify 16 -->
+............<cdb_opcode base="hex">2A</cdb_opcode> <!-- write 10 -->
+............<cdb_opcode base="hex">8A</cdb_opcode> <!-- write 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">true</is_lba_specific_count_type>
+........<count_limit base="dec">2</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">REASSIGN_LBA</action>
+............<action base="string">RESEND_COMMAND</action>
+............<action base="string">CONTINUE_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">Exceptions to 03/XX</description>
+........<sense_key_pattern base="string">03</sense_key_pattern>
+........<additional_sense_code_pattern base="string">31|32|39|44</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">Too many 03/xx</description>
+........<sense_key_pattern base="string">03</sense_key_pattern>
+........<additional_sense_code_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">28</cdb_opcode> <!-- read 10 -->
+............<cdb_opcode base="hex">88</cdb_opcode> <!-- read 16 -->
+............<cdb_opcode base="hex">2F</cdb_opcode> <!-- verify 10 -->
+............<cdb_opcode base="hex">8F</cdb_opcode> <!-- verify 16 -->
+............<cdb_opcode base="hex">2A</cdb_opcode> <!-- write 10 -->
+............<cdb_opcode base="hex">8A</cdb_opcode> <!-- write 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1000</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">03/xx on writes</description>
+........<sense_key_pattern base="string">03</sense_key_pattern>
+........<additional_sense_code_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">2A</cdb_opcode> <!-- write 10 -->
+............<cdb_opcode base="hex">8A</cdb_opcode> <!-- write 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">03/11 on reads</description>
+........<sense_key_pattern base="string">03</sense_key_pattern>
+........<additional_sense_code_pattern base="string">11</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">28</cdb_opcode> <!-- read 10 -->
+............<cdb_opcode base="hex">88</cdb_opcode> <!-- read 16 -->
+............<cdb_opcode base="hex">2F</cdb_opcode> <!-- verify 10 -->
+............<cdb_opcode base="hex">8F</cdb_opcode> <!-- verify 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">03/xx on reads</description>
+........<sense_key_pattern base="string">03</sense_key_pattern>
+........<additional_sense_code_pattern base="string">[2-9A-Fa-f]{2}|00</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">28</cdb_opcode> <!-- read 10 -->
+............<cdb_opcode base="hex">88</cdb_opcode> <!-- read 16 -->
+............<cdb_opcode base="hex">2F</cdb_opcode> <!-- verify 10 -->
+............<cdb_opcode base="hex">8F</cdb_opcode> <!-- verify 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">Exceptions to 04/XX</description>
+.......<sense_key_pattern base="string">04</sense_key_pattern>
+........<additional_sense_code_pattern base="string">01|02|19|1C|1c|29|32|35|40|42|44|80</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">One 04/XX</description>
+........<sense_key_pattern base="string">04</sense_key_pattern>
+........<additional_sense_code_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">One 0B/47</description>
+........<sense_key_pattern base="string">OB|0b</sense_key_pattern>
+........<additional_sense_code_pattern base="string">47</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<!--  maybe add action to dump RLS data or leave to TA? -->
+            <!-- since they want to dump RLS data of all drives on the loop, it must be the TA-->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">Recovered data</description>
+........<sense_key_pattern base="string">01</sense_key_pattern>
+........<additional_sense_code_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<cdb_opcodes> <!-- apply rule to the following opcodes -->
+............<cdb_opcode base="hex">28</cdb_opcode> <!-- read 10 -->
+............<cdb_opcode base="hex">88</cdb_opcode> <!-- read 16 -->
+............<cdb_opcode base="hex">2F</cdb_opcode> <!-- verify 10 -->
+............<cdb_opcode base="hex">8F</cdb_opcode> <!-- verify 16 -->
+............<cdb_opcode base="hex">2A</cdb_opcode> <!-- write 10 -->
+............<cdb_opcode base="hex">8A</cdb_opcode> <!-- write 16 -->
+............<cdb_opcode base="hex">2E</cdb_opcode> <!-- write and verify 10 -->
+............<cdb_opcode base="hex">8E</cdb_opcode> <!-- write and verify 16 -->
+........</cdb_opcodes>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<!--  maybe add action to dump RLS data or leave to TA? -->
+            <!-- since they want to dump RLS data of all drives on the loop, it must be the TA-->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">CONTINUE_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">05/21 (51-04)for SATA</description>
+........<sense_key_pattern base="string">05</sense_key_pattern>
+........<additional_sense_code_pattern base="string">21</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<!--  maybe add action to dump RLS data or leave to TA? -->
+            <!-- since they want to dump RLS data of all drives on the loop, it must be the TA-->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">BYPASS_DRIVE</action>
+............<action base="string">STOP_TEST</action>
+........</actions>
+....</rule>
+....<rule>
+........<description base="string">All other errors</description>
+........<sense_key_pattern base="string">[0-9A-Fa-f]{2}</sense_key_pattern>
+........<additional_sense_code_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_pattern>
+........<additional_sense_code_qualifier_pattern base="string">[0-9A-Fa-f]{2}</additional_sense_code_qualifier_pattern>
+........<is_lba_specific_count_type base="string">false</is_lba_specific_count_type>
+........<count_limit base="dec">1</count_limit>
+........<actions> <!-- ordered list of action to take if rule triggers -->
+............<action base="string">REPORT_ERROR</action>
+............<action base="string">SET_FAULT_LED</action>
+............<action base="string">DUMP_COMMAND_LOG</action>
+............<action base="string">CONTINUE_TEST</action>
+........</actions>
+....</rule>
+..</error_manager>
+</error_manager_root>

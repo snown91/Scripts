@@ -1,0 +1,82 @@
+{
+  "version": 0, 
+  "packages": [
+    {
+      "subenclosures": [
+        "Cayenne LCC"
+      ], 
+      "files": [
+        {
+          "image": "istr.bin", 
+          "sha1": "deff557015db1c6107b2a87da63fefe5491e62c9", 
+          "version": "0.9.0", 
+          "component_type": 2
+        }, 
+        {
+          "image": "cdes_rom.bin", 
+          "sha1": "a5d8c8e39c92e74ebcf2bdb318b58dfa7148ecda", 
+          "version": "2.2.0", 
+          "component_type": 0
+        }
+      ]
+    }, 
+    {
+      "subenclosures": [
+        "Cayenne IOSXP", 
+        "Ancho LCC", 
+        "Tabasco LCC",
+        "Naga IOSXP",
+        "Oberon LCC",
+        "Europa LCC",
+        "Lapetus BM"
+      ], 
+      "files": [
+        {
+          "image": "cdef.bin", 
+          "sha1": "63e77183973ee7a31da5984a74cc34e861dbdc93", 
+          "version": "21.00", 
+          "component_type": 3
+        }, 
+        {
+          "image": "istr.bin", 
+          "sha1": "deff557015db1c6107b2a87da63fefe5491e62c9", 
+          "version": "0.9.0", 
+          "component_type": 2
+        }, 
+        {
+          "image": "cdes_rom.bin", 
+          "sha1": "a5d8c8e39c92e74ebcf2bdb318b58dfa7148ecda", 
+          "version": "2.2.0", 
+          "component_type": 0
+        }
+      ]
+    }, 
+    {
+      "subenclosures": [
+        "Cayenne DRVSXP",
+        "Naga DRVSXP",
+        "Colossus LCC"
+      ], 
+      "files": [
+        {
+          "image": "cdef_dual.bin", 
+          "sha1": "94aa4d3fd2095243ee7c811dfaec40482f2987cf", 
+          "version": "21.00", 
+          "component_type": 3
+        }, 
+        {
+          "image": "istr.bin", 
+          "sha1": "deff557015db1c6107b2a87da63fefe5491e62c9", 
+          "version": "0.9.0", 
+          "component_type": 2
+        }, 
+        {
+          "image": "cdes_rom.bin", 
+          "sha1": "a5d8c8e39c92e74ebcf2bdb318b58dfa7148ecda", 
+          "version": "2.2.0", 
+          "component_type": 0
+        }
+      ]
+    }
+  ]
+}
